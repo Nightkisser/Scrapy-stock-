@@ -14,135 +14,95 @@ class StockSpider(scrapy.Spider):
     def __init__(self):
         # 因为东方财富网行情表为相同网站下爬取不同页的数据
         # 定义网站页码变量
-        self.page = 0
-        self.max_page = 30
+        self.page = 1
+        # 手动定义最大页码，暂时还没有编写从网页自行获取
+        self.max_page = 0
+        # 爬取网页的列表索引
+        self.index = 0
+        # 辅助判断沪股还是深股
         self.name = ''
-        self.nm=''
+        self.nm = ''
+        # 定义标签页的句柄
+        self.first_h = None
+        # 爬取网页列表
+        self.url_list = ["http://quote.eastmoney.com/center/gridlist.html#sh_hk_board",
+                    "http://quote.eastmoney.com/center/gridlist.html#sz_hk_board"]
+
         super(StockSpider, self).__init__(name='stock')
-        # option = ChromeOptions()
-        # option.headless = True
+        # 定义模拟浏览器的路径
         chrome = '/home/zcreset/Scrapy/爬虫/chromedriver'
+        # 设置无头爬取模式，即后台运行，无界面显示
+        # chorme_options = ChromeOptions()
+        # chorme_options.add_argument("--headless")
+        # chorme_options.add_argument('--disable-gpu')
+        # self.driver = webdriver.Chrome(executable_path=chrome,chrome_options=chorme_options)
+        
+        # 给爬虫设置Chrome浏览器
         self.driver = webdriver.Chrome(executable_path=chrome)
 
-
     def start_requests(self):
-        # f = open('/home/zcreset/Scrapy/爬虫/stock/stock/share.txt','r')
-        # text = f.read()
-        # url_list = re.findall('http:.+\.html',text)
-        url_list = ["http://quote.eastmoney.com/center/gridlist.html#sh_hk_board",
-                    "http://quote.eastmoney.com/center/gridlist.html#sz_hk_board"]
-        for url in url_list:
-            self.page = 1
-            self.name = url.split('#')[-1][:2]
-            self.driver.get(url)
-            yield scrapy.Request(url, callback=self.parse)
-            # while self.page <= self.max_page:
-            #     try:
-            #         self.page += 1
-            #         self.driver.find_element_by_class_name('next').click()
-            #         WebDriverWait(self.driver, 10)  # 浏览器等待10s
-            #         yield scrapy.Request(url, callback=self.parse, meta={
-            #             'page': self.page,
-            #         })#,dont_filter=True)
-            #     except:
-            #         continue
-            # yield scrapy.Request(url, callback=self.parse)
-
-    #Parse(StockSpider类中的函数)
-    # def parse(self, response):
-    #     # 循环获取列表中a标签的链接信息
-    #     urls = response.xpath('//*[@class="ngbglistdiv"]/ul/li')
-    #     for href in urls:
-    #         try:
-    #             # 通过正则表达式获取链接中想要的信息
-    #             stock_name = href.xpath('./a/text()').extract()[0]
-    #             stock_url = href.css('a::attr(href)').extract()[0]
-    #             # 生成百度股票对应的链接信息
-    #             url = 'http://guba.eastmoney.com/' + stock_url
-    #             # content = {}
-    #             # content[stock_name] = url
-    #             f = open('share.txt','a')
-    #             f.write(str({stock_name:url})+"\n")
-    #             f.close()
-    #             # yield是生成器
-    #             # 将新的URL重新提交到scrapy框架
-    #             # callback给出了处理这个响应的处理函数为parse_stock
-    #             yield scrapy.Request(url, callback=self.parse_stock,headers=settings.HEADER)
-    #         except:
-    #             continue
+        url = self.url_list[self.index]
+        self.name = url.split('#')[-1][:2]
+        self.driver.get(url)
+        # 获取当前标签页句柄
+        self.first_h = self.driver.current_window_handle
+        # 在当前标签页进行爬取请求
+        yield scrapy.Request(url, callback=self.parse, dont_filter= True)
 
     # 定义如何存百度的单个页面中提取信息的方法
     def parse(self, response):
-
-        # con = response.xpath('//*[@id="stockhqh"]')
-        # info = response.xpath('//*[@id="stockheader"]')
-        # 因为每个页面返回 的是一个字典类型，所以定义一个空字典
-        # content_list = response.xpath('//*[@id="table_wrapper-table"]/tbody/tr')
+        # 调用字段函数创建数据存储字典
+        # 暂时手动是手动记录最大页码
         Item = StockItem()
+        # 判断股票归属地
         if self.name == 'sh':
             self.max_page = 30
             self.nm = '沪股通'
         elif self.name == 'sz':
             self.max_page = 45
             self.nm = '深股通'
-
+            
+        # 根据页码设定重复切换页码爬取的次数
         while self.page <= self.max_page:
+            # 根据网页源码提取需要的信息，使用selenium的元素查找方法
             content_list = self.driver.find_elements_by_xpath('//*[@id="table_wrapper-table"]/tbody/tr')
             for content in content_list:
                 Item['stock_id'] = content.find_element_by_xpath('./td[2]/a').text
                 Item['stock_name'] = content.find_element_by_xpath('./td[3]/a').text
-
                 Item['cur_value'] = content.find_element_by_xpath('./td[5]/span').text
                 Item['change_value'] = content.find_element_by_xpath('./td[6]/span').text
                 Item['change_rate'] = content.find_element_by_xpath('./td[7]/span').text
                 Item['deal_num'] = content.find_element_by_xpath('./td[8]').text
                 Item['deal_rate'] = content.find_element_by_xpath('./td[10]').text
                 Item['deal_money'] = content.find_element_by_xpath('./td[9]').text
-                    # Item['trans_money'] = content.xpath('./tbody/tr[1]/td[9]/text()').extract()[0]
                 Item['trans_rate'] = content.find_element_by_xpath('./td[15]').text
                 Item['market_sale'] = content.find_element_by_xpath('./td[16]').text
                 Item['market_rate'] = content.find_element_by_xpath('./td[17]').text
                 Item['stock_loc'] = self.nm
-                # Item['stock_id'] = content.xpath('./td[2]/a/text()').extract()[0]
-                # Item['stock_name'] = content.xpath('./td[3]/a/text()').extract()[0]
-                #
-                # Item['cur_value'] = content.xpath('./td[5]/span/text()').extract()[0]
-                # Item['change_value'] = content.xpath('./td[6]/span/text()').extract()[0]
-                # Item['change_rate'] = content.xpath('./td[7]/span/text()').extract()[0]
-                # Item['deal_num'] = content.xpath('./td[8]/text()').extract()[0]
-                # Item['deal_rate'] = content.xpath('./td[10]/text()').extract()[0]
-                # Item['deal_money'] = content.xpath('./td[9]/text()').extract()[0]
-                # #Item['trans_money'] = content.xpath('./tbody/tr[1]/td[9]/text()').extract()[0]
-                # Item['trans_rate'] = content.xpath('./td[15]/text()').extract()[0]
-                # Item['market_sale'] = content.xpath('./td[16]/text()').extract()[0]
-                # Item['market_rate'] = content.xpath('./td[17]/text()').extract()[0]
                 yield Item
+            # 页码更新
             self.page += 1
+            # 搜索下一页按钮并点击下一页
             self.driver.find_element_by_class_name('next').click()
+            # 等待页面加载
             time.sleep(1)
+            
+        # 定义新建标签页并切换至指定网站的脚本
+        js = 'window.open("http://quote.eastmoney.com/center/gridlist.html#sz_hk_board");'
+        # 更新网页索引
+        self.index += 1
+        if self.index < len(self.allowed_domains):
+            url = self.url_list[self.index]
+            self.name = url.split('#')[-1][:2]
+            # 运行脚本
+            self.driver.execute_script(js)
+            # 获取新建标签页的句柄
+            handles = self.driver.window_handles
+            h = None
+            for handle in handles:
+                if handle != self.first_h:
+                    h = handle
+            # 切换当前标签页
+            self.driver.switch_to.window(h)
+            # 在新的标签页进行爬取请求
             yield scrapy.Request(url, callback=self.parse)
-
-        # if self.page < self.max_page:
-        #     next_url = "http://quote.eastmoney.com/center/gridlist.html#sh_hk_board"
-        #     yield scrapy.Request(next_url,callback=self.parse,meta={
-        #         'page': self.page,
-        #         },dont_filter=False)
-
-
-
-        # Item['stock_id'] = info.css('span a::attr(href)').extract()[0].split(',')[-1][:6]
-        # print(Item['stock_id'])
-        # Item['stock_name'] = info.xpath('./span[0]/span/a/text()').extract()[0]
-        # print(Item['stock_name'])
-        # Item['cur_value'] = con.xpath('./span[1]/span[0]/text()').extract()[0]
-        # Item['change_value'] = con.xpath('./span[1]/span[1]/text()').extract()[0]
-        # Item['change_rate'] = con.xpath('./span[1]/span[2]/text()').extract()[0]
-        # Item['deal_num'] = con.xpath('./ul/li[0]/span/text()').extract()[0]
-        # Item['deal_rate'] =
-        # #Item['deal_money'] = con.xpath('./ul/li[1]/span/text()').extract()[0]
-        # Item['trans_money'] = con.xpath('./ul/li[2]/span/text()').extract()[0]
-        # Item['trans_rate'] = con.xpath('./ul/li[3]/span/text()').extract()[0]
-        # Item['market_value'] = con.xpath('./ul/li[4]/span/text()').extract()[0]
-        # 将提取的信息保存到字典中
-        #     yield Item
-
