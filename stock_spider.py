@@ -6,12 +6,14 @@ from selenium.webdriver import ChromeOptions
 
 class StockSpider(scrapy.Spider):
     name = 'stock'
-    # allowed_domains = ['quote.eastmoney.com']
-    # domain_url = 'http://guba.eastmoney.com/'
-    # start_urls = ['http://guba.eastmoney.com/remenba.aspx?type=1']
+    # 允许爬取的域名
+    allowed_domains = ['quote.eastmoney.com']
+    # 爬虫的起始网页
+    start_urls = ['http://quote.eastmoney.com/center/gridlist.html#sh_hk_board']
 
     def __init__(self):
-        # 在初始化淘宝对象时，创建driver
+        # 因为东方财富网行情表为相同网站下爬取不同页的数据
+        # 定义网站页码变量
         self.page = 0
         self.max_page = 30
         self.name = ''
