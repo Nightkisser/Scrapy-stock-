@@ -4,8 +4,7 @@
 # https://docs.scrapy.org/en/latest/topics/items.html
 
 import scrapy
-
-
+# 定义要爬起的字段名，即字典的键
 class StockItem(scrapy.Item):
     # define the fields for your item here like:
     # name = scrapy.Field()
