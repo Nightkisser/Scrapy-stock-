@@ -11,7 +11,10 @@ BOT_NAME = 'stock'
 
 SPIDER_MODULES = ['stock.spiders']
 NEWSPIDER_MODULE = 'stock.spiders'
+
+# 用户代理
 # USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36"
+
 HEADER = {'Accept-Encoding': 'gzip, deflate',
 'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
 'Cache-Control': 'max-age=0',
@@ -21,13 +24,21 @@ HEADER = {'Accept-Encoding': 'gzip, deflate',
 'Upgrade-Insecure-Requests': 1,
 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36'
 }
-MYSQL_HOST = 'localhost'#'localhost'
-MYSQL_PORT = 3306
-MYSQL_USER = 'root'
-MYSQL_PASSWD = '123'  # 密码请写自己的
-MYSQL_DB = 'test'  # 数据库也请写自己的
 
+# 数据库地址
+MYSQL_HOST = 'localhost'
+# 端口
+MYSQL_PORT = 3306
+# 数据库用户名
+MYSQL_USER = 'root'
+# 密码写自己的
+MYSQL_PASSWD = '123'  
+# 插入的数据库
+MYSQL_DB = 'test'  
+# 下载延迟
 DOWNLOAD_DELAY = 2
+
+# 字段管道处理函数
 ITEM_PIPELINES = {
     'stock.pipelines.StockPipeline': 200,
 }
@@ -47,17 +58,19 @@ ITEM_PIPELINES = {
 #     # {"ipaddr":"58.247.127.145:53281"},
 #     # {"ipaddr":"183.195.106.118:8118"}
 # ]
-# # 下载中间件
+
+# 下载中间件
 DOWNLOADER_MIDDLEWARES = {
-   #'qianmu.middlewares.MyCustomDownloaderMiddleware': 543,
+    'stock.middlewares.SeleniumStockDownloaderMiddleware':543,
+    # 如果启用代理池需要包含如下两个设置
     # 'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware':123,
-    'stock.middlewares.SeleniumStockDownloaderMiddleware':543
     # 'stock.middlewares.IPPOOLS':125
 }
+
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = 'stock (+http://www.yourdomain.com)'
 
 # Obey robots.txt rules
+# false为不遵守网站爬虫规则
 ROBOTSTXT_OBEY = False
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
