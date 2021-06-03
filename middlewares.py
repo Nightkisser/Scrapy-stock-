@@ -11,10 +11,11 @@ import time
 # useful for handling different item types with a single interface
 from itemadapter import is_item, ItemAdapter
 import random
-#from stock.settings import IPPOOL
+# from stock.settings import IPPOOL
 from scrapy.downloadermiddlewares.httpproxy import HttpProxyMiddleware
 
-# 代理池
+# 避免网站禁用ip的反爬虫
+# ip代理池
 # class IPPOOLS(HttpProxyMiddleware):
 #     def __init__(self,ip=''):
 #         self.ip = ip
@@ -23,6 +24,7 @@ from scrapy.downloadermiddlewares.httpproxy import HttpProxyMiddleware
 #         thisip = random.choice(IPPOOL)
 #         request.meta["proxy"] = "http://"+thisip["ipaddr"]
 
+# 默认下载件
 class StockSpiderMiddleware:
     # Not all methods need to be defined. If a method is not defined,
     # scrapy acts as if the spider middleware does not modify the
@@ -69,49 +71,35 @@ class StockSpiderMiddleware:
     def spider_opened(self, spider):
         spider.logger.info('Spider opened: %s' % spider.name)
 
-
+// 基于Selenium的中间下载件
 class SeleniumStockDownloaderMiddleware:
 # class DownloaderMiddleware:
     # Not all methods need to be defined. If a method is not defined,
     # scrapy acts as if the downloader middleware does not modify the
     # passed objects.
-#     option = webdriver.ChromeOptions()
-#     # option.add_argument('headless')
-#     # prefs = {
-#     #     "profile.managed_default_content_settings.images": 2,  # 禁止加载图片
-#     #     'permissions.default.stylesheet': 2,  # 禁止加载css
-#     # }
-#     # option.add_experimental_option("prefs", prefs)
-#     self.browser.implicitly_wait(2)
-#     self.browser.execute_script('window.open("","_blank");')  # 新建一个标签页
+    
     @classmethod
     def from_crawler(cls, crawler):
         # This method is used by Scrapy to create your spiders.
         s = cls()
         crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
         return s
-#
+    # 处理回调请求
     def process_request(self, request, spider):
         if spider.name == "stock":
+            # 调用爬虫的模拟浏览器打开指定网址
             spider.driver.get(request.url)
+            # 获取已打开网页的源代码
             origin_code = spider.driver.page_source
             # 将源代码构造成为一个Response对象，并返回。
             res = HtmlResponse(url=request.url, encoding='utf8', body=origin_code, request=request)
 
-            # if request.meta['page'] <= 30:
-            #     print('next')
-            #     spider.driver.find_element_by_class_name('next').click()  # get next page
             return res
-        # if spider.name == 'bole':
-        #     request.cookies = {}
-        #     request.headers.setDefault('User-Agent', '')
         return None
 
     def process_response(self, request, response, spider):
         print(response.url, response.status)
         return response
-#
-
 
     #
     # def process_request(self, request, spider):
