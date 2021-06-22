@@ -1,0 +1,58 @@
+// scrapy-redis 版本
+
+import scrapy
+import time
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from east_stock.items import EastStockItem
+from selenium.webdriver import ChromeOptions
+from scrapy_redis.spiders import RedisSpider
+
+class StockSpiderPySpider(RedisSpider):
+    name = 'stock_spider'
+    allowed_domains = ['eastmoney.com']
+    redis_key = 'single:money'
+
+    def __init__(self):
+        self.page = 1
+        self.max_page = 90
+        self.index = 0
+
+        super(StockSpiderPySpider, self).__init__(name='stock_spider')
+        chrome = '/home/zcreset/Scrapy/爬虫/chromedriver'
+        # 设置无头爬取模式
+        # chorme_options = ChromeOptions()
+        # chorme_options.add_argument("--headless")
+        # chorme_options.add_argument('--disable-gpu')
+        # self.driver = webdriver.Chrome(executable_path=chrome,chrome_options=chorme_options)
+        self.driver = webdriver.Chrome(executable_path=chrome)
+
+    def parse(self, response):
+        self.driver.get(response.url)
+        Item = EastStockItem()
+        while self.page <= 90:
+            content_list = self.driver.find_elements_by_xpath('//*[@id="dataview"]/div[2]/div[2]/table/tbody/tr')
+            for content in content_list:
+                Item['stock_id'] = content.find_element_by_xpath('./td[2]/a').text
+                Item['stock_name'] = content.find_element_by_xpath('./td[3]/a').text
+                Item['stock_price'] = content.find_element_by_xpath('./td[5]/span').text
+                Item['stock_change'] = content.find_element_by_xpath('./td[6]/span').text
+                Item['main_in'] = content.find_element_by_xpath('./td[7]/span').text
+                Item['main_inrate'] = content.find_element_by_xpath('./td[8]/span').text
+                Item['super_in'] = content.find_element_by_xpath('./td[9]/span').text
+                Item['super_rate'] = content.find_element_by_xpath('./td[10]/span').text
+                Item['big_in'] = content.find_element_by_xpath('./td[11]/span').text
+                Item['big_rate'] = content.find_element_by_xpath('./td[12]/span').text
+                Item['mid_in'] = content.find_element_by_xpath('./td[13]/span').text
+                Item['mid_rate'] = content.find_element_by_xpath('./td[14]/span').text
+                Item['small_in'] = content.find_element_by_xpath('./td[15]/span').text
+                Item['small_rate'] = content.find_element_by_xpath('./td[16]/span').text
+                yield Item
+            self.page += 1
+            input = self.driver.find_element_by_xpath('//*[@id="gotopageindex"]')
+            input.send_keys(Keys.CONTROL, "a")
+            input.send_keys(self.page)
+            self.driver.find_element_by_xpath('//*[@id="dataview"]/div[3]/div[2]/form/input[@type="submit"]').click()
+            time.sleep(2)
+
+            # yield scrapy.Request(response.url, callback=self.parse, dont_filter=True)
